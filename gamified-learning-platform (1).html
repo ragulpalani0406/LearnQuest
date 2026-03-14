@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LearnQuest – Gamified Learning</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg:#0d0f1a;--surface:#161929;--surface2:#1e2340;--card:#242848;--border:#2e3560;
+  --accent:#f7c948;--accent2:#ff6b6b;--accent3:#4ecdc4;--accent4:#a78bfa;--accent5:#34d399;
+  --text:#eef0ff;--muted:#8890b8;
+  --lred:#ef4444;--lblue:#3b82f6;--lgreen:#22c55e;--lyellow:#f7c948;
+  --fh:'Fredoka One',cursive;--fb:'Nunito',sans-serif;--fm:'Space Mono',monospace;
+  --r:14px;--sh:0 8px 32px rgba(0,0,0,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ANIMATIONS */
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{transform:scale(.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-12px)}60%{transform:translateY(-6px)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tokenHop{0%{transform:scale(1) translateY(0)}30%{transform:scale(1.6) translateY(-14px)}70%{transform:scale(1.2) translateY(-4px)}100%{transform:scale(1) translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px var(--accent)}50%{box-shadow:0 0 24px var(--accent),0 0 48px rgba(247,201,72,.3)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes confetti{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes ringIn{from{stroke-dashoffset:440}to{stroke-dashoffset:var(--offset)}}
+@keyframes cellUnlock{0%{transform:scale(.8);opacity:.3}100%{transform:scale(1);opacity:1}}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:11px;border:none;font-family:var(--fb);font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.btn:active{transform:scale(.95);}
+.btn-y{background:linear-gradient(135deg,var(--accent),#e09800);color:#1a1000;}
+.btn-y:hover{transform:translateY(-2px);box-shadow:0 0 20px rgba(247,201,72,.4);}
+.btn-g{background:linear-gradient(135deg,var(--accent5),#16a34a);color:#fff;}
+.btn-t{background:linear-gradient(135deg,var(--accent3),#0891b2);color:#fff;}
+.btn-p{background:linear-gradient(135deg,var(--accent4),#7c3aed);color:#fff;}
+.btn-r{background:linear-gradient(135deg,var(--accent2),#c0392b);color:#fff;}
+.btn-s{background:var(--surface2);border:1.5px solid var(--border);color:var(--text);}
+.btn-lg{padding:15px 32px;font-size:17px;border-radius:13px;}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:9px;}
+
+/* INPUTS */
+.fg{margin-bottom:18px;}
+.fg label{display:block;font-weight:800;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;}
+.fc{width:100%;padding:13px 15px;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-family:var(--fb);font-size:14px;outline:none;transition:.2s;}
+.fc:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(247,201,72,.12);}
+.fc option{background:var(--surface2);}
+
+/* BADGE */
+.bdg{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;}
+.bdg-e{background:rgba(52,211,153,.2);color:var(--accent5);}
+.bdg-m{background:rgba(247,201,72,.2);color:var(--accent);}
+.bdg-h{background:rgba(239,68,68,.2);color:var(--accent2);}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;flex-shrink:0;}
+.logo{font-family:var(--fh);font-size:22px;color:var(--accent);display:flex;align-items:center;gap:8px;}
+.user-pill{display:flex;align-items:center;gap:10px;background:var(--surface2);padding:7px 14px;border-radius:40px;border:1px solid var(--border);}
+.uav{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent4),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;}
+
+/* TOAST */
+.toast{position:fixed;top:20px;right:20px;z-index:9999;background:var(--surface);border:1.5px solid var(--border);border-radius:13px;padding:13px 18px;display:flex;align-items:center;gap:10px;box-shadow:var(--sh);animation:slideUp .3s ease;font-weight:700;font-size:13px;max-width:300px;}
+.toast.ok{border-color:var(--accent5);}
+.toast.err{border-color:var(--accent2);}
+.toast.info{border-color:var(--accent4);}
+
+/* ========== SCREEN 1: LOGIN ========== */
+#s-login{align-items:center;justify-content:center;padding:40px 20px;
+  background:radial-gradient(ellipse at 20% 50%,rgba(78,205,196,.08),transparent 60%),
+             radial-gradient(ellipse at 80% 20%,rgba(167,139,250,.08),transparent 60%),var(--bg);}
+.lcard{background:var(--surface);border:1.5px solid var(--border);border-radius:22px;width:100%;max-width:500px;padding:44px 38px;box-shadow:var(--sh);animation:fadeIn .5s ease;}
+.llogo{text-align:center;margin-bottom:32px;}
+.llogo .lico{width:68px;height:68px;background:linear-gradient(135deg,var(--accent),#e09800);border-radius:18px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:34px;animation:float 3s ease-in-out infinite;box-shadow:0 0 20px rgba(247,201,72,.4);}
+.llogo h1{font-family:var(--fh);font-size:30px;color:var(--accent);}
+.llogo p{color:var(--muted);font-size:13px;margin-top:4px;}
+.ltabs{display:flex;background:var(--surface2);border-radius:11px;padding:4px;margin-bottom:28px;}
+.ltab{flex:1;text-align:center;padding:9px;border-radius:9px;cursor:pointer;font-weight:800;font-size:13px;color:var(--muted);transition:.2s;}
+.ltab.active{background:var(--card);color:var(--accent);}
+.tpane{display:none;}.tpane.active{display:block;animation:fadeIn .3s ease;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{padding:7px 13px;border-radius:18px;font-size:12px;font-weight:800;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:.2s;color:var(--muted);}
+.chip.sel{background:rgba(247,201,72,.15);border-color:var(--accent);color:var(--accent);}
+.sklvls{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.skcard{padding:13px 8px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;transition:.2s;text-align:center;}
+.skcard .ski{font-size:22px;margin-bottom:5px;}
+.skcard .skn{font-size:11px;font-weight:800;color:var(--muted);}
+.skcard.sel{border-color:var(--accent);background:rgba(247,201,72,.1);}
+.skcard.sel .skn{color:var(--accent);}
+
+/* ========== SCREEN 2: COURSES ========== */
+#s-courses{background:var(--bg);}
+.cbody{flex:1;padding:36px 28px;max-width:1400px;margin:0 auto;width:100%;}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px;}
+.ccard{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;transition:all .3s;cursor:pointer;animation:fadeIn .4s ease both;}
+.ccard:hover{transform:translateY(-6px);border-color:var(--accent);box-shadow:0 12px 40px rgba(0,0,0,.4);}
+.cimg{height:140px;display:flex;align-items:center;justify-content:center;font-size:60px;position:relative;}
+.cbod{padding:18px;}
+.ctitle{font-family:var(--fh);font-size:19px;margin-bottom:6px;}
+.cmeta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.mi{font-size:12px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:3px;}
+.cpbar{height:5px;background:var(--surface2);border-radius:3px;margin-bottom:13px;overflow:hidden;}
+.cpfill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));border-radius:3px;}
+.cfooter{display:flex;justify-content:space-between;align-items:center;}
+
+/* ========== SCREEN 3: LUDO LEARNING ========== */
+/* This is the BIG screen - Ludo board IS the learning interface */
+#s-learn{background:var(--bg);}
+.learn-wrap{flex:1;display:flex;gap:0;overflow:hidden;}
+
+/* LEFT SIDEBAR */
+.lsidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.ls-head{padding:16px;border-bottom:1px solid var(--border);}
+.ls-title{font-family:var(--fh);font-size:15px;color:var(--accent);margin-bottom:10px;}
+.ls-steps{padding:10px;}
+.ls-step{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;margin-bottom:4px;cursor:pointer;transition:.2s;border:1.5px solid transparent;}
+.ls-step:hover{background:var(--surface2);}
+.ls-step.active{background:rgba(247,201,72,.1);border-color:rgba(247,201,72,.3);}
+.ls-step.done{opacity:.75;}
+.ls-step.locked{opacity:.35;cursor:not-allowed;}
+.snum{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;}
+.snum.active{background:var(--accent);color:#1a1000;border-color:var(--accent);}
+.snum.done{background:var(--accent5);color:#fff;border-color:var(--accent5);}
+.sinfo{flex:1;min-width:0;}
+.sname{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ssub{font-size:11px;color:var(--muted);}
+
+/* CENTER: LUDO BOARD AREA */
+.lcenter{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.learn-topbar2{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:var(--surface);flex-shrink:0;}
+.ltitle2{font-family:var(--fh);font-size:17px;flex:1;}
+.xp-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:800;color:var(--accent);}
+
+/* THE LUDO LEARNING ZONE */
+.ludo-learn-zone{flex:1;display:flex;align-items:stretch;justify-content:center;overflow:hidden;padding:0;}
+
+/* LUDO BOARD CONTAINER - Left side of learning zone */
+.ludo-board-area{
+  width:420px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;background:var(--surface);border-right:1px solid var(--border);
+}
+
+/* REAL LUDO BOARD */
+.ludo-board{
+  width:360px;height:360px;
+  display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);
+  border:3px solid var(--border);border-radius:10px;overflow:hidden;
+  box-shadow:0 4px 32px rgba(0,0,0,.5);flex-shrink:0;
+}
+.lc{/* ludo cell */
+  display:flex;align-items:center;justify-content:center;
+  font-size:7px;font-weight:800;font-family:var(--fm);
+  position:relative;transition:all .3s;
+}
+/* Ludo zones */
+.lc.z-red{background:#ff4444;}
+.lc.z-blue{background:#2266ff;}
+.lc.z-green{background:#22bb44;}
+.lc.lc.z-yellow{background:#ffcc00;}
+.lc.z-center{background:#fff;}
+.lc.z-path{background:#f8f9ff;border:0.5px solid rgba(0,0,0,.08);}
+.lc.z-path-r{background:#ffdddd;}
+.lc.z-path-b{background:#ddeeff;}
+.lc.z-path-g{background:#ddffee;}
+.lc.z-path-y{background:#fffbdd;}
+.lc.z-safe{background:#fff;border:1px solid rgba(0,0,0,.12);}
+.lc.z-empty{background:var(--surface2);}
+.lc.z-home-red{background:#ff4444;}
+.lc.z-home-blue{background:#2266ff;}
+.lc.z-home-green{background:#22bb44;}
+.lc.z-home-yellow{background:#ffcc00;}
+
+/* PATH STEP highlight */
+.lc.step-active{
+  animation:glow 1.2s infinite;z-index:5;
+  outline:2px solid var(--accent);outline-offset:1px;
+}
+.lc.step-done{
+  background:#c8f7c8 !important;
+}
+.lc.step-locked{opacity:.6;}
+
+/* Token */
+.ltoken{
+  width:70%;height:70%;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;z-index:10;
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+  border:2px solid rgba(255,255,255,.6);
+  cursor:pointer;position:absolute;
+  animation:bounce 2s ease-in-out infinite;
+}
+.ltoken.hopping{animation:tokenHop .6s ease !important;}
+.lt-y{background:var(--accent);color:#1a1000;}
+
+/* Star in center */
+.star-cell{
+  grid-column:7/10;grid-row:7/10;
+  background:linear-gradient(135deg,#ff6b6b,#f7c948,#4ecdc4,#a78bfa);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;z-index:10;border-radius:4px;
+}
+
+/* CONTENT PANEL - Right side of learning zone */
+.content-panel{
+  flex:1;display:flex;flex-direction:column;overflow-y:auto;
+  padding:24px;gap:18px;
+}
+
+/* Video card */
+.video-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;flex-shrink:0;}
+.video-inner{aspect-ratio:16/9;background:linear-gradient(135deg,#0f172a,#1e293b);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;position:relative;cursor:pointer;}
+.video-inner video{width:100%;height:100%;object-fit:cover;display:none;}
+.vid-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.play-circle{width:64px;height:64px;border-radius:50%;background:rgba(247,201,72,.9);display:flex;align-items:center;justify-content:center;font-size:26px;transition:.2s;border:none;cursor:pointer;}
+.play-circle:hover{transform:scale(1.12);box-shadow:0 0 20px rgba(247,201,72,.5);}
+.vid-progress{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.1);}
+.vid-fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));border-radius:2px;transition:width .3s;}
+.video-meta{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
+.video-meta h4{font-family:var(--fh);font-size:16px;}
+.vid-status{font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px;}
+.vid-status.watching{background:rgba(247,201,72,.2);color:var(--accent);}
+.vid-status.done{background:rgba(52,211,153,.2);color:var(--accent5);}
+.vid-status.notstarted{background:var(--surface2);color:var(--muted);}
+
+/* Material card */
+.mat-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);padding:20px;}
+.mat-card h4{font-family:var(--fh);font-size:16px;color:var(--accent3);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mat-card p{color:var(--muted);font-size:13px;line-height:1.7;}
+.kpoints{list-style:none;margin-top:10px;}
+.kpoints li{padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:9px;}
+.kpoints li:last-child{border-bottom:none;}
+
+/* Step complete CTA */
+.step-cta{background:linear-gradient(135deg,rgba(78,205,196,.12),rgba(167,139,250,.12));border:1.5px solid var(--border);border-radius:var(--r);padding:24px;text-align:center;}
+.step-cta h4{font-family:var(--fh);font-size:20px;margin-bottom:8px;}
+.step-cta p{color:var(--muted);font-size:13px;margin-bottom:16px;}
+
+/* RIGHT PANEL */
+.rpanel{width:220px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+.rp-sec{}
+.rp-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+.prog-ring{display:flex;flex-direction:column;align-items:center;}
+.ring-wrap{position:relative;width:90px;height:90px;}
+.ring-svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--surface2);stroke-width:7;}
+.ring-fill{fill:none;stroke:url(#rg);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .7s ease;}
+.ring-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.ring-pct{font-family:var(--fh);font-size:20px;color:var(--accent);}
+.ring-sub{font-size:9px;color:var(--muted);}
+.stat-r{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.stat-r:last-child{border-bottom:none;}
+.stat-r .sl{color:var(--muted);font-weight:700;}
+.stat-r .sv{font-weight:800;}
+.sv.gold{color:var(--accent);}
+.sv.teal{color:var(--accent3);}
+.streak-row{display:flex;gap:3px;}
+.sd{width:26px;height:26px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--muted);}
+.sd.on{background:var(--accent);color:#1a1000;}
+.sd.now{background:var(--accent3);color:#fff;animation:glow 1.5s infinite;}
+
+/* ========== SCREEN 4: QUIZ ========== */
+#s-quiz{background:radial-gradient(ellipse at 30% 0%,rgba(167,139,250,.07),transparent 50%),var(--bg);}
+.qwrap{max-width:860px;margin:0 auto;padding:28px 20px;width:100%;}
+.q-top{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+.q-top h2{font-family:var(--fh);font-size:26px;flex:1;}
+.score-pill{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:7px 18px;display:flex;align-items:center;gap:7px;}
+.score-num{font-family:var(--fh);font-size:20px;color:var(--accent);}
+.score-lbl{font-size:12px;color:var(--muted);font-weight:800;}
+
+/* QUIZ MINI LUDO (same real ludo board but smaller) */
+.quiz-ludo-wrap{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:20px;margin-bottom:24px;}
+.qlt{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.quiz-ludo-board{
+  width:300px;height:300px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);
+  border:2px solid var(--border);border-radius:8px;overflow:hidden;
+  box-shadow:0 2px 16px rgba(0,0,0,.4);
+}
+.qlc{display:flex;align-items:center;justify-content:center;font-size:5px;font-weight:800;font-family:var(--fm);position:relative;transition:all .3s;}
+.qlc.z-red{background:#ff4444;}
+.qlc.z-blue{background:#2266ff;}
+.qlc.z-green{background:#22bb44;}
+.qlc.z-yellow{background:#ffcc00;}
+.qlc.z-center{background:#fff;}
+.qlc.z-path{background:#f8f9ff;border:.3px solid rgba(0,0,0,.08);}
+.qlc.z-path-r{background:#ffdddd;}
+.qlc.z-path-b{background:#ddeeff;}
+.qlc.z-path-g{background:#ddffee;}
+.qlc.z-path-y{background:#fffbdd;}
+.qlc.z-empty{background:var(--surface2);}
+.qlc.qstep-done{background:#a8f0c8 !important;}
+.qlc.qstep-cur{animation:glow 1s infinite;outline:1.5px solid var(--accent);outline-offset:0px;z-index:5;}
+.qlc.qstep-locked{opacity:.55;}
+.qtoken{width:65%;height:65%;border-radius:50%;background:var(--accent);color:#1a1000;border:1.5px solid rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.4);position:absolute;animation:bounce 1.5s ease-in-out infinite;}
+.quiz-qstar{grid-column:7/10;grid-row:7/10;background:linear-gradient(135deg,#ff6b6b,#f7c948,#4ecdc4,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:18px;z-index:10;border-radius:3px;}
+
+/* Question card */
+.qcard{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px;margin-bottom:18px;animation:fadeIn .3s ease;}
+.qnum{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.qtxt{font-size:17px;font-weight:800;line-height:1.5;margin-bottom:20px;}
+.opts{display:flex;flex-direction:column;gap:9px;}
+.opt{padding:14px 18px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;transition:.2s;font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.opt:hover{border-color:var(--accent4);background:rgba(167,139,250,.1);}
+.opt.sel{border-color:var(--accent);background:rgba(247,201,72,.1);color:var(--accent);}
+.opt.cor{border-color:var(--accent5);background:rgba(52,211,153,.15);color:var(--accent5);}
+.opt.wrg{border-color:var(--accent2);background:rgba(255,107,107,.15);color:var(--accent2);}
+.ol{width:26px;height:26px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:var(--fm);flex-shrink:0;}
+.fb{padding:14px 18px;border-radius:11px;display:none;margin-bottom:14px;font-weight:800;font-size:14px;align-items:center;gap:9px;}
+.fb.show{display:flex;animation:fadeIn .3s ease;}
+.fb.ok{background:rgba(52,211,153,.15);border:1.5px solid var(--accent5);color:var(--accent5);}
+.fb.bad{background:rgba(255,107,107,.15);border:1.5px solid var(--accent2);color:var(--accent2);}
+.qacts{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
+
+/* Quiz complete */
+.qcomplete{display:none;text-align:center;padding:40px;}
+.qcomplete.show{display:block;animation:popIn .5s ease;}
+
+/* ========== SCREEN 5: DASHBOARD ========== */
+#s-dash{background:var(--bg);}
+.dbody{max-width:1100px;margin:0 auto;padding:36px 22px;width:100%;}
+.dhero{background:linear-gradient(135deg,var(--surface),var(--card));border:1.5px solid var(--border);border-radius:22px;padding:36px;margin-bottom:28px;display:flex;gap:28px;align-items:center;animation:fadeIn .5s ease;}
+.dhav{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:44px;flex-shrink:0;box-shadow:0 0 30px rgba(247,201,72,.3);}
+.dstats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px;}
+.dsc{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:22px;animation:fadeIn .4s ease both;}
+.dsc .dsi{font-size:28px;margin-bottom:10px;}
+.dsc .dsv{font-family:var(--fh);font-size:32px;margin-bottom:3px;}
+.dsc .dsl{font-size:12px;color:var(--muted);font-weight:700;}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:28px;}
+.chart-card{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:22px;animation:fadeIn .4s ease both;}
+.chart-card h3{font-family:var(--fh);font-size:18px;margin-bottom:16px;}
+.lb-list{display:flex;flex-direction:column;gap:7px;}
+.lb-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border-radius:11px;border:1.5px solid var(--border);}
+.lb-item.me{border-color:var(--accent);background:rgba(247,201,72,.08);}
+.lbr{font-family:var(--fh);font-size:17px;width:30px;text-align:center;}
+.lbr.g{color:var(--accent)}.lbr.s{color:#94a3b8}.lbr.b{color:#cd7c2b}
+.lbav{width:32px;height:32px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.lbn{flex:1;font-weight:800;font-size:13px;}
+.lbs{font-family:var(--fh);font-size:15px;color:var(--accent);}
+
+/* CHATBOT */
+.cb-btn{position:fixed;bottom:22px;right:22px;z-index:1000;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent4),var(--accent3));border:none;cursor:pointer;font-size:26px;box-shadow:0 4px 18px rgba(167,139,250,.5);transition:.3s;display:flex;align-items:center;justify-content:center;animation:glow 2s infinite;}
+.cb-btn:hover{transform:scale(1.1);}
+.cb-panel{position:fixed;bottom:90px;right:22px;z-index:999;width:340px;background:var(--surface);border:1.5px solid var(--border);border-radius:18px;box-shadow:var(--sh);display:none;flex-direction:column;max-height:460px;animation:slideUp .3s ease;}
+.cb-panel.open{display:flex;}
+.cb-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.cb-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent4),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:18px;}
+.cb-info h4{font-weight:800;font-size:14px;}
+.cb-info p{font-size:11px;color:var(--accent5);display:flex;align-items:center;gap:4px;}
+.cb-dot{width:7px;height:7px;border-radius:50%;background:var(--accent5);animation:pulse 2s infinite;}
+.cb-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.cmsg{max-width:82%;padding:11px 13px;border-radius:13px;font-size:13px;line-height:1.5;animation:fadeIn .3s ease;}
+.cmsg.bot{background:var(--surface2);color:var(--text);border-bottom-left-radius:3px;align-self:flex-start;}
+.cmsg.usr{background:linear-gradient(135deg,var(--accent4),var(--accent3));color:#fff;border-bottom-right-radius:3px;align-self:flex-end;}
+.tdots{display:flex;gap:4px;}.td{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:pulse .8s ease-in-out infinite;}.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+.qchips{display:flex;gap:5px;flex-wrap:wrap;padding:0 12px 8px;}
+.qchip{padding:4px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:18px;font-size:11px;cursor:pointer;transition:.2s;color:var(--muted);}
+.qchip:hover{border-color:var(--accent4);color:var(--accent4);}
+.cb-inp{padding:10px;border-top:1px solid var(--border);display:flex;gap:7px;}
+.cb-input{flex:1;padding:9px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--fb);font-size:13px;outline:none;}
+.cb-input:focus{border-color:var(--accent4);}
+.cb-send{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--accent4),var(--accent3));border:none;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:.2s;}
+.cb-send:hover{transform:scale(1.05);}
+
+/* confetti */
+.cp{position:fixed;width:9px;height:9px;pointer-events:none;z-index:9999;animation:confetti 3s ease-in forwards;}
+
+@media(max-width:768px){
+  .learn-wrap{flex-direction:column;}
+  .lsidebar{width:100%;height:auto;max-height:180px;}
+  .ludo-board-area{width:100%;padding:12px;}
+  .ludo-board{width:280px;height:280px;}
+  .rpanel{width:100%;border-left:none;border-top:1px solid var(--border);}
+  .dstats{grid-template-columns:1fr 1fr;}
+  .charts-row{grid-template-columns:1fr;}
+  .dhero{flex-direction:column;text-align:center;}
+  .cb-panel{width:calc(100vw - 40px);}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ -->
+<!--  SCREEN 1: LOGIN                   -->
+<!-- ═══════════════════════════════════ -->
+<div id="s-login" class="screen active">
+  <div class="lcard">
+    <div class="llogo">
+      <div class="lico">🎲</div>
+      <h1>LearnQuest</h1>
+      <p>Play your way to mastery. Every lesson is a quest.</p>
+    </div>
+    <div class="ltabs">
+      <div class="ltab active" onclick="swTab('login')">Sign In</div>
+      <div class="ltab" onclick="swTab('signup')">Join Now</div>
+    </div>
+    <!-- LOGIN -->
+    <div class="tpane active" id="tp-login">
+      <div class="fg"><label>Email</label><input class="fc" id="l-email" placeholder="you@example.com" value="alex@demo.com"></div>
+      <div class="fg"><label>Password</label><input class="fc" type="password" id="l-pass" placeholder="••••••••" value="demo123"></div>
+      <button class="btn btn-y btn-lg" style="width:100%;justify-content:center" onclick="doLogin()">🚀 Start Learning</button>
+      <p style="text-align:center;margin-top:12px;font-size:12px;color:var(--muted)">Demo: any email + password</p>
+    </div>
+    <!-- SIGNUP -->
+    <div class="tpane" id="tp-signup">
+      <div class="fg"><label>Full Name</label><input class="fc" id="r-name" placeholder="Your name"></div>
+      <div class="fg"><label>Email</label><input class="fc" id="r-email" placeholder="you@example.com"></div>
+      <div class="fg"><label>Education</label>
+        <select class="fc" id="r-edu">
+          <option value="">Select...</option>
+          <option>High School</option><option>Bachelor's</option><option>Master's</option><option>PhD</option><option>Self-taught</option>
+        </select>
+      </div>
+      <div class="fg"><label>Interests</label>
+        <div class="chips">
+          <div class="chip" onclick="tChip(this)">💻 Programming</div>
+          <div class="chip" onclick="tChip(this)">🎨 Design</div>
+          <div class="chip" onclick="tChip(this)">📊 Data Science</div>
+          <div class="chip" onclick="tChip(this)">🤖 AI / ML</div>
+          <div class="chip" onclick="tChip(this)">🌐 Web Dev</div>
+          <div class="chip" onclick="tChip(this)">☁️ Cloud</div>
+        </div>
+      </div>
+      <div class="fg"><label>Skill Level</label>
+        <div class="sklvls">
+          <div class="skcard" onclick="selSkill(this)"><div class="ski">🌱</div><div class="skn">Beginner</div></div>
+          <div class="skcard" onclick="selSkill(this)"><div class="ski">🔥</div><div class="skn">Intermediate</div></div>
+          <div class="skcard" onclick="selSkill(this)"><div class="ski">⚡</div><div class="skn">Advanced</div></div>
+        </div>
+      </div>
+      <button class="btn btn-y btn-lg" style="width:100%;justify-content:center;margin-top:10px" onclick="doReg()">🎮 Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--  SCREEN 2: COURSES                 -->
+<!-- ═══════════════════════════════════ -->
+<div id="s-courses" class="screen">
+  <div class="topbar">
+    <div class="logo">🎲 LearnQuest</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:12px;color:var(--muted)">🔥 <span id="streak-n">5</span> day streak</div>
+      <div class="user-pill">
+        <div class="uav" id="nav-av">A</div>
+        <div><div style="font-weight:800;font-size:13px" id="nav-nm">Alex</div><div style="font-size:11px;color:var(--accent);font-weight:800">⚡ <span id="nav-xp">0</span> XP</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="cbody">
+    <div style="margin-bottom:32px;animation:fadeIn .4s ease">
+      <h2 style="font-family:var(--fh);font-size:32px">Choose Your Quest 🗺️</h2>
+      <p style="color:var(--muted);margin-top:5px">Enroll in a course and play through the Ludo learning board!</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+      <button class="btn btn-s btn-sm active-filter" onclick="filt(this,'all')" style="border-color:var(--accent);color:var(--accent)">All</button>
+      <button class="btn btn-s btn-sm" onclick="filt(this,'easy')">🌱 Beginner</button>
+      <button class="btn btn-s btn-sm" onclick="filt(this,'medium')">🔥 Intermediate</button>
+      <button class="btn btn-s btn-sm" onclick="filt(this,'hard')">⚡ Advanced</button>
+    </div>
+    <div class="cgrid" id="cgrid"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--  SCREEN 3: LUDO LEARNING           -->
+<!-- ═══════════════════════════════════ -->
+<div id="s-learn" class="screen">
+  <div class="topbar">
+    <div class="logo">🎲 LearnQuest</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="xp-pill">⚡ <span id="xp-top">0</span> XP</div>
+      <button class="btn btn-s btn-sm" onclick="goScreen('courses')">← Courses</button>
+      <button class="btn btn-p btn-sm" onclick="goScreen('dash')">📊 Dashboard</button>
+    </div>
+  </div>
+  <div class="learn-wrap">
+    <!-- LEFT SIDEBAR: Steps -->
+    <div class="lsidebar">
+      <div class="ls-head">
+        <div class="ls-title" id="ls-title">Course Title</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Your Progress</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden"><div id="ls-bar" style="height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));border-radius:3px;transition:width .5s;width:0%"></div></div>
+          <span style="font-size:12px;font-weight:800;color:var(--accent)" id="ls-pct">0%</span>
+        </div>
+      </div>
+      <div class="ls-steps" id="ls-steps"></div>
+    </div>
+
+    <!-- CENTER: LUDO BOARD + CONTENT -->
+    <div class="lcenter">
+      <div class="learn-topbar2">
+        <div class="ltitle2" id="ltitle2">Step 1: Introduction</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;color:var(--muted);font-weight:700">Ludo Position:</span>
+          <span style="font-size:13px;font-weight:800;color:var(--accent)" id="ludo-pos-label">Step 1</span>
+        </div>
+      </div>
+      <div class="ludo-learn-zone">
+        <!-- LUDO BOARD -->
+        <div class="ludo-board-area">
+          <div>
+            <div style="text-align:center;margin-bottom:10px;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:1px;text-transform:uppercase">🎲 Your Learning Path</div>
+            <div class="ludo-board" id="ludo-board"></div>
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#ffcc00;display:inline-block"></span> You</span>
+              <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#a8f0c8;display:inline-block"></span> Done</span>
+              <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#f8f9ff;border:1px solid #ccc;display:inline-block"></span> Next</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTENT: Video + Materials -->
+        <div class="content-panel" id="content-panel">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="rpanel">
+      <div class="rp-sec">
+        <div class="rp-title">Progress</div>
+        <div class="prog-ring">
+          <div class="ring-wrap">
+            <svg class="ring-svg" width="90" height="90" viewBox="0 0 90 90">
+              <defs><linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:var(--accent3)"/><stop offset="100%" style="stop-color:var(--accent)"/></linearGradient></defs>
+              <circle class="ring-bg" cx="45" cy="45" r="38"/>
+              <circle class="ring-fill" id="ring-fill" cx="45" cy="45" r="38" stroke-dasharray="239" stroke-dashoffset="239"/>
+            </svg>
+            <div class="ring-lbl"><div class="ring-pct" id="ring-pct">0%</div><div class="ring-sub">Done</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="rp-sec">
+        <div class="rp-title">Stats</div>
+        <div class="stat-r"><span class="sl">Step</span><span class="sv" id="rp-step">1/5</span></div>
+        <div class="stat-r"><span class="sl">XP</span><span class="sv gold" id="rp-xp">0</span></div>
+        <div class="stat-r"><span class="sl">Quiz</span><span class="sv teal" id="rp-quiz">-</span></div>
+        <div class="stat-r"><span class="sl">Time</span><span class="sv" id="rp-time">0m</span></div>
+      </div>
+      <div class="rp-sec">
+        <div class="rp-title">Week 🔥</div>
+        <div class="streak-row" id="streak-row"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--  SCREEN 4: QUIZ                    -->
+<!-- ═══════════════════════════════════ -->
+<div id="s-quiz" class="screen">
+  <div class="topbar">
+    <div class="logo">🎲 LearnQuest</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-s btn-sm" onclick="exitQuiz()">✕ Exit Quiz</button>
+    </div>
+  </div>
+  <div class="qwrap">
+    <div class="q-top">
+      <h2 id="q-title">Quiz: Module 1</h2>
+      <div class="score-pill">
+        <div class="score-num" id="q-score">0</div>
+        <div class="score-lbl">/ 15 pts</div>
+      </div>
+    </div>
+
+    <!-- MINI LUDO BOARD ON TOP OF QUIZ -->
+    <div class="quiz-ludo-wrap">
+      <div class="qlt">🎲 Quest Progress Board <span style="color:var(--accent);margin-left:auto" id="ql-pos">Position: 1</span></div>
+      <div class="quiz-ludo-board" id="quiz-ludo-board"></div>
+    </div>
+
+    <!-- FEEDBACK -->
+    <div class="fb" id="qfb"><span id="qfb-icon">✅</span><span id="qfb-txt">Correct!</span></div>
+
+    <!-- QUESTION -->
+    <div id="q-area"></div>
+
+    <!-- COMPLETE -->
+    <div class="qcomplete" id="qcomplete">
+      <div style="font-size:80px;animation:float 2s ease-in-out infinite;margin-bottom:10px">🏆</div>
+      <div style="font-size:14px;color:var(--muted);font-weight:800;margin-bottom:6px">Quiz Complete!</div>
+      <div style="font-family:var(--fh);font-size:60px;color:var(--accent)" id="qfinal">0</div>
+      <div style="color:var(--muted);font-size:16px;margin-bottom:20px">/ 15 points</div>
+      <div id="qmsg" style="color:var(--muted);font-size:15px;margin-bottom:28px"></div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-s" onclick="retryQ()">🔄 Retry</button>
+        <button class="btn btn-y" id="next-btn" onclick="proceedNext()">Next Step →</button>
+        <button class="btn btn-p" onclick="goScreen('dash')">📊 Dashboard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--  SCREEN 5: DASHBOARD               -->
+<!-- ═══════════════════════════════════ -->
+<div id="s-dash" class="screen">
+  <div class="topbar">
+    <div class="logo">🎲 LearnQuest</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-s btn-sm" onclick="goScreen('learn')">← Continue</button>
+      <button class="btn btn-s btn-sm" onclick="goScreen('courses')">🗺️ Courses</button>
+    </div>
+  </div>
+  <div class="dbody">
+    <div class="dhero">
+      <div class="dhav" id="d-av">🎓</div>
+      <div style="flex:1">
+        <h2 style="font-family:var(--fh);font-size:28px" id="d-name">Alex</h2>
+        <p style="color:var(--muted);margin-bottom:12px" id="d-course">Enrolled: —</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="padding:5px 12px;border-radius:20px;background:rgba(247,201,72,.15);color:var(--accent);border:1px solid rgba(247,201,72,.3);font-size:12px;font-weight:800">🏆 Top Learner</span>
+          <span style="padding:5px 12px;border-radius:20px;background:rgba(78,205,196,.15);color:var(--accent3);border:1px solid rgba(78,205,196,.3);font-size:12px;font-weight:800">🔥 5-Day Streak</span>
+          <span style="padding:5px 12px;border-radius:20px;background:rgba(167,139,250,.15);color:var(--accent4);border:1px solid rgba(167,139,250,.3);font-size:12px;font-weight:800">⚡ <span id="d-xp">0</span> XP</span>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--fh);font-size:48px;color:var(--accent)" id="d-grade">—</div>
+        <div style="font-size:12px;color:var(--muted);font-weight:700">Final Grade</div>
+      </div>
+    </div>
+    <div class="dstats">
+      <div class="dsc" style="animation-delay:.1s"><div class="dsi">⭐</div><div class="dsv" style="color:var(--accent)" id="d-sxp">0</div><div class="dsl">Total XP</div></div>
+      <div class="dsc" style="animation-delay:.2s"><div class="dsi">🎯</div><div class="dsv" style="color:var(--accent3)" id="d-savg">0%</div><div class="dsl">Avg Score</div></div>
+      <div class="dsc" style="animation-delay:.3s"><div class="dsi">📚</div><div class="dsv" style="color:var(--accent4)" id="d-sdone">0/0</div><div class="dsl">Modules Done</div></div>
+      <div class="dsc" style="animation-delay:.4s"><div class="dsi">🏆</div><div class="dsv" style="color:var(--accent2)" id="d-srank">#—</div><div class="dsl">Rank</div></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card"><h3>📊 Module Performance</h3><canvas id="barChart" height="200"></canvas></div>
+      <div class="chart-card"><h3>🏆 Leaderboard</h3><div class="lb-list" id="lb-list"></div></div>
+    </div>
+    <div class="chart-card"><h3>📈 XP Progress</h3><canvas id="lineChart" height="90"></canvas></div>
+  </div>
+</div>
+
+<!-- CHATBOT -->
+<button class="cb-btn" onclick="tChat()" id="cbbtn">🤖</button>
+<div class="cb-panel" id="cbpanel">
+  <div class="cb-head">
+    <div class="cb-av">🤖</div>
+    <div class="cb-info" style="flex:1"><h4>Aria — AI Tutor</h4><p><span class="cb-dot"></span> Online</p></div>
+    <button class="btn btn-s btn-sm" onclick="tChat()">✕</button>
+  </div>
+  <div class="cb-msgs" id="cb-msgs">
+    <div class="cmsg bot">👋 Hi! I'm Aria. Ask me anything about your course — concepts, tips, motivation, navigation. I'm here! 🚀</div>
+  </div>
+  <div class="qchips">
+    <div class="qchip" onclick="qMsg(this)">💡 Study tips</div>
+    <div class="qchip" onclick="qMsg(this)">🏆 Motivate me</div>
+    <div class="qchip" onclick="qMsg(this)">❓ Quiz help</div>
+    <div class="qchip" onclick="qMsg(this)">🗺️ How to navigate</div>
+  </div>
+  <div class="cb-inp">
+    <input class="cb-input" id="cb-in" placeholder="Ask Aria..." onkeydown="if(event.key==='Enter')sChat()">
+    <button class="cb-send" onclick="sChat()">↑</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                 -->
+<!-- ═══════════════════════════════════════════ -->
+<script>
+/* ===== STATE ===== */
+const S = {
+  user:{name:'Alex',email:'',edu:'',interests:[],skill:'',xp:0},
+  course:null,
+  mod:0,
+  mods:[],// [{done,quizScore,quizDone,videoDone,studyDone}]
+  videoPlaying:false,
+  timerSecs:0,
+  timerInt:null,
+};
+
+/* ===== COURSES ===== */
+const COURSES=[
+  {id:1,e:'🌐',t:'Full-Stack Web Dev',dur:'8 weeks',diff:'medium',steps:5,r:'4.8',s:'12.4k',col:'#4ecdc4',d:'Master HTML, CSS, JS, Node.js & databases.'},
+  {id:2,e:'🤖',t:'Machine Learning',dur:'10 weeks',diff:'hard',steps:6,r:'4.9',s:'8.7k',col:'#a78bfa',d:'Neural networks, supervised learning, model deployment.'},
+  {id:3,e:'📱',t:'Mobile App Dev',dur:'6 weeks',diff:'medium',steps:4,r:'4.7',s:'9.2k',col:'#f7c948',d:'React Native apps for iOS & Android.'},
+  {id:4,e:'🎨',t:'UI/UX Design',dur:'5 weeks',diff:'easy',steps:4,r:'4.6',s:'15.1k',col:'#ff6b6b',d:'Figma, prototyping, user research.'},
+  {id:5,e:'☁️',t:'Cloud & DevOps',dur:'12 weeks',diff:'hard',steps:7,r:'4.9',s:'5.3k',col:'#34d399',d:'AWS, Docker, Kubernetes, CI/CD.'},
+  {id:6,e:'🔒',t:'Cybersecurity',dur:'7 weeks',diff:'medium',steps:5,r:'4.8',s:'7.8k',col:'#f97316',d:'Ethical hacking, penetration testing.'},
+];
+
+const MODS=[
+  {n:'HTML & CSS Foundations',s:'Basics & Styling',i:'🌐'},
+  {n:'JavaScript & Node.js',s:'Backend Basics',i:'⚡'},
+  {n:'Databases & APIs',s:'Data Layer',i:'🗄️'},
+  {n:'React Frontend',s:'UI Frameworks',i:'⚛️'},
+  {n:'DevOps & Deployment',s:'Ship it!',i:'🚀'},
+  {n:'Advanced Patterns',s:'Pro Level',i:'🧠'},
+  {n:'Capstone Project',s:'Build it!',i:'🏗️'},
+];
+
+const MATS=[
+  {title:'📖 Core Concepts',body:'Master the fundamental building blocks of this module. These concepts are used in real production systems daily.',pts:['Architecture patterns used in modern systems','Industry best practices and standards','Common pitfalls and how to avoid them','Real-world application scenarios']},
+  {title:'🔑 Key Takeaways',body:'After this lesson, you will understand how to apply these concepts in practice.',pts:['How concepts connect to the broader ecosystem','Implementation strategies for different project types','Performance considerations and optimization','Testing and validation methodologies']},
+  {title:'🛠️ Practice Exercise',body:'Try implementing a small example using the concepts from this module.',pts:['Build a minimal working example','Test edge cases you learned about','Compare your solution with best practices','Reflect on what could be improved']},
+];
+
+/* ===== QUIZ QUESTIONS ===== */
+const QB={
+  0:[
+    {q:"What does HTML stand for?",o:["HyperText Markup Language","High Transfer Machine Language","Hyper Tool Markup Level","HyperText Machine Logic"],a:0},
+    {q:"Which CSS property changes text color?",o:["font-color","text-color","color","text-style"],a:2},
+    {q:"What does 'var' do in JavaScript?",o:["Declares a variable","Creates a function","Defines a class","Imports a module"],a:0},
+    {q:"Which is the largest HTML heading?",o:["<h6>","<heading>","<h1>","<head>"],a:2},
+    {q:"Which tag adds JS in HTML?",o:["<js>","<script>","<javascript>","<code>"],a:1},
+    {q:"CSS stands for?",o:["Creative Style Sheets","Computer Style Sheets","Cascading Style Sheets","Colorful Style Sheets"],a:2},
+    {q:"How to change element text in JS?",o:["element.text = 'x'","element.innerText = 'x'","element.changeText('x')","element.setText('x')"],a:1},
+    {q:"Which checks equality AND type?",o:["==","=","===","!="],a:2},
+    {q:"DOM stands for?",o:["Document Object Model","Display Object Module","Dynamic Object Mapping","Document Oriented Method"],a:0},
+    {q:"Which unit is relative to viewport width?",o:["px","em","vw","rem"],a:2},
+    {q:"typeof null returns?",o:['"null"','"undefined"','"object"','"string"'],a:2},
+    {q:"Which HTML attribute is a link destination?",o:["src","href","link","url"],a:1},
+    {q:"Which makes flex items wrap?",o:["flex-wrap","flex-flow","wrap","flex-direction"],a:0},
+    {q:"Which method adds to end of JS array?",o:["push()","append()","add()","insert()"],a:0},
+    {q:"API stands for?",o:["Application Programming Interface","Application Process Integration","Applied Protocol Interface","Automated Program Interface"],a:0},
+  ],
+  1:[
+    {q:"Node.js is used for?",o:["Styling web pages","Running JS on server","Designing databases","Creating mobile apps"],a:1},
+    {q:"Which initializes a Node.js project?",o:["node start","npm init","node create","npm start"],a:1},
+    {q:"Express.js is?",o:["A database","A web framework for Node.js","A CSS preprocessor","A JS testing library"],a:1},
+    {q:"REST stands for?",o:["Remote Execution State Transfer","Representational State Transfer","Responsive System Template","Remote Service Template"],a:1},
+    {q:"Which HTTP method retrieves data?",o:["POST","PUT","GET","DELETE"],a:2},
+    {q:"JSON stands for?",o:["JavaScript Object Notation","Java Serialized Object Notation","JavaScript Online Network","Java System Object Name"],a:0},
+    {q:"Middleware in Express is?",o:["A database layer","Functions that process requests","CSS framework","A testing tool"],a:1},
+    {q:"Status code 404 means?",o:["OK","Not Found","Server Error","Redirect"],a:1},
+    {q:"async/await is used for?",o:["DOM manipulation","Handling promises","CSS animations","Database queries"],a:1},
+    {q:"npm stands for?",o:["Node Package Module","Node Package Manager","Network Protocol Manager","Node Program Module"],a:1},
+    {q:"Spread operator is?",o:["**","...","->","<<"],a:1},
+    {q:"A callback function is?",o:["A function that calls itself","A function passed as an argument","A global function","An arrow function"],a:1},
+    {q:"CORS stands for?",o:["Cross-Origin Resource Sharing","Cross-Object Rendering System","Client-Origin Request Service","Cache-Origin Request Sharing"],a:0},
+    {q:"'use strict' does what?",o:["Prevents variable hoisting","Enables strict mode in JS","Locks all variables","Prevents async code"],a:1},
+    {q:"Which removes last element from array?",o:["splice()","shift()","pop()","remove()"],a:2},
+  ],
+  2:[
+    {q:"A database schema is?",o:["Data storage location","Structure of a database","Database password","Query language"],a:1},
+    {q:"SQL stands for?",o:["Server Query Language","Structured Query Language","System Query Logic","Sequential Query Layer"],a:1},
+    {q:"SQL command to retrieve data?",o:["GET","FETCH","SELECT","READ"],a:2},
+    {q:"A primary key is?",o:["The first column","A unique identifier for each record","The largest value","An encrypted field"],a:1},
+    {q:"MongoDB is?",o:["SQL database","NoSQL document database","A web framework","A caching system"],a:1},
+    {q:"A database index is?",o:["Table row count","A structure to speed up retrieval","A backup file","A primary key constraint"],a:1},
+    {q:"CRUD stands for?",o:["Create, Read, Update, Delete","Connect, Render, Upload, Deploy","Copy, Remove, Upload, Download","Create, Remove, Undo, Delete"],a:0},
+    {q:"Normalization means?",o:["Encrypting data","Organizing data to reduce redundancy","Backing up data","Indexing all columns"],a:1},
+    {q:"Which JOIN returns all rows from both tables?",o:["INNER JOIN","LEFT JOIN","RIGHT JOIN","FULL OUTER JOIN"],a:3},
+    {q:"A foreign key is?",o:["An encrypted key","A reference to a primary key in another table","A unique identifier","An index column"],a:1},
+    {q:"ORM stands for?",o:["Object-Relational Mapping","Online Resource Management","Object-Request Module","Open Resource Model"],a:0},
+    {q:"SQL clause to filter results?",o:["FILTER","SELECT","WHERE","HAVING"],a:2},
+    {q:"A database transaction is?",o:["A query execution","A unit of work that's atomic","A connection pool","A backup routine"],a:1},
+    {q:"ACID stands for?",o:["Atomic, Consistent, Isolated, Durable","Automated, Consistent, Indexed, Durable","Atomic, Cached, Integrated, Durable","Async, Consistent, Isolated, Distributed"],a:0},
+    {q:"SQL command to create a table?",o:["NEW TABLE","ADD TABLE","INSERT TABLE","CREATE TABLE"],a:3},
+  ],
+  3:[
+    {q:"React is?",o:["A CSS framework","A JavaScript UI library","A backend framework","A database"],a:1},
+    {q:"JSX is?",o:["A new JS version","JavaScript + XML syntax for React","A JSON extension","A JS query language"],a:1},
+    {q:"React hooks are?",o:["CSS animations","State in class components","Functions to use state in functional components","Event listeners"],a:2},
+    {q:"useState returns?",o:["Just the state value","Just the setter function","State value and setter function","State and effect"],a:2},
+    {q:"Virtual DOM is?",o:["A hidden HTML file","An in-memory representation of the DOM","A CSS property","A database structure"],a:1},
+    {q:"Prop drilling is?",o:["Passing props through many component layers","Changing prop types","Creating default props","Validating props"],a:0},
+    {q:"useEffect does what?",o:["Creates state","Performs side effects after render","Handles routing","Manages context"],a:1},
+    {q:"Context API is?",o:["A REST API","A way to share state without prop drilling","An HTTP client","A testing utility"],a:1},
+    {q:"A React component is?",o:["A CSS class","A reusable UI building block","A database model","A server route"],a:1},
+    {q:"key prop in lists?",o:["Styles list items","Helps React identify changed items","Creates unique IDs","Validates list data"],a:1},
+    {q:"Code splitting in React is?",o:["Splitting JS into multiple files","Dividing components into files","Lazy loading parts of the app","Minifying CSS"],a:2},
+    {q:"useMemo is for?",o:["Storing references","Memoizing expensive calculations","Managing side effects","Routing"],a:1},
+    {q:"React.StrictMode does what?",o:["Enforces strict CSS","Highlights potential problems in dev","Locks state","Prevents rendering"],a:1},
+    {q:"A controlled component is?",o:["A server-side component","Form element controlled by React state","A lazy-loaded component","A pure function component"],a:1},
+    {q:"Redux is used for?",o:["State management","Routing","CSS-in-JS","Server-side rendering"],a:0},
+  ],
+  4:[
+    {q:"CI/CD stands for?",o:["Code Integration / Code Delivery","Continuous Integration / Continuous Delivery","Continuous Inspection / Deployment","Coded Interface / Delivery"],a:1},
+    {q:"Docker is?",o:["A web server","A containerization platform","A database","A cloud provider"],a:1},
+    {q:"A Dockerfile is?",o:["A deployment plan","Instructions to build a Docker image","A database schema","A server config"],a:1},
+    {q:"Kubernetes is?",o:["A container runtime","A container orchestration system","A cloud database","A CI/CD tool"],a:1},
+    {q:"A microservice is?",o:["A small CSS file","An independent, loosely coupled service","A database table","A frontend component"],a:1},
+    {q:"Load balancing is?",o:["Compressing files","Distributing traffic across servers","Caching responses","Encrypting data"],a:1},
+    {q:"Infrastructure as Code is?",o:["Coding the UI","Managing infrastructure via config files","Writing server logic","Database migrations"],a:1},
+    {q:"A container image is?",o:["A screenshot","A lightweight, standalone software package","A virtual machine","A server backup"],a:1},
+    {q:"AWS Lambda does what?",o:["Hosts databases","Runs code without managing servers","Manages DNS","Provides CDN"],a:1},
+    {q:"A reverse proxy is?",o:["A client-side proxy","A server forwarding requests to backends","An encryption tool","A load test tool"],a:1},
+    {q:"Terraform is?",o:["A database ORM","An infrastructure as code tool","A testing framework","A CSS preprocessor"],a:1},
+    {q:"Blue-green deployment is?",o:["Deploying to multiple cloud providers","Two environments for zero-downtime releases","A color-coding system","A load balancing type"],a:1},
+    {q:"A pod in Kubernetes is?",o:["A database cluster","The smallest deployable unit with containers","A network namespace","A storage volume"],a:1},
+    {q:"Observability means?",o:["Watching monitors","Understanding system state from outputs","Code reviews","Security auditing"],a:1},
+    {q:"A service mesh is?",o:["Microservices with communication infrastructure","A CSS grid system","A database cluster","A monitoring tool"],a:0},
+  ],
+};
+
+/* ===== LUDO BOARD BUILDER ===== */
+// Real Ludo board: 15x15 grid
+// Zones: Red(top-left 6x6), Blue(top-right 6x6), Green(bottom-left 6x6), Yellow(bottom-right 6x6)
+// Center: 3x3 star
+// Path cells around
+
+function buildLudoGrid() {
+  // Returns 15x15 array of zone strings
+  const G = Array.from({length:15},()=>Array(15).fill('empty'));
+
+  // Home zones (6x6 corners)
+  for(let r=0;r<6;r++) for(let c=0;c<6;c++) G[r][c]='home-red';
+  for(let r=0;r<6;r++) for(let c=9;c<15;c++) G[r][c]='home-blue';
+  for(let r=9;r<15;r++) for(let c=0;c<6;c++) G[r][c]='home-green';
+  for(let r=9;r<15;r++) for(let c=9;c<15;c++) G[r][c]='home-yellow';
+
+  // Inner home circles (2x2 in each corner home)
+  // (just styling, handled by zone)
+
+  // Center triangle/star: 3x3 at (6,6)-(8,8)
+  for(let r=6;r<9;r++) for(let c=6;c<9;c++) G[r][c]='center';
+
+  // PATH cells
+  // TOP section (rows 0-5, col 6-8 is path going down): col6=path-r, col7=safe/center, col8=path-b... simplify:
+  // Outer path: standard Ludo path cells
+  // Row 6 (left part): c0-c5
+  for(let c=0;c<6;c++) G[6][c]='path';
+  // Row 8 (right part): c9-c14
+  for(let c=9;c<15;c++) G[8][c]='path';
+  // Col 6 (top part): r0-r5
+  for(let r=0;r<6;r++) G[r][6]='path';
+  // Col 8 (top part): r0-r5 - blue side home stretch
+  for(let r=0;r<6;r++) G[r][8]='path';
+  // Col 6 (bottom part): r9-r14
+  for(let r=9;r<15;r++) G[r][6]='path';
+  // Col 8 (bottom part): r9-r14
+  for(let r=9;r<15;r++) G[r][8]='path';
+  // Row 6 (right part): c9-c14
+  for(let c=9;c<15;c++) G[6][c]='path';
+  // Row 8 (left part): c0-c5
+  for(let c=0;c<6;c++) G[8][c]='path';
+
+  // Middle cross (rows 6,7,8 and cols 6,7,8 minus center)
+  G[7][6]='path'; G[7][8]='path';
+  G[6][7]='path'; G[8][7]='path';
+
+  // Colored home stretch paths (inside cross)
+  // Red home stretch: col7, rows 1-5 (going up to center)
+  for(let r=1;r<6;r++) G[r][7]='path-r';
+  // Blue home stretch: row 7, cols 9-13
+  for(let c=9;c<14;c++) G[7][c]='path-b';
+  // Green home stretch: row 7, cols 1-5
+  for(let c=1;c<6;c++) G[7][c]='path-g';
+  // Yellow home stretch: col 7, rows 9-13
+  for(let r=9;r<14;r++) G[r][7]='path-y';
+
+  return G;
+}
+
+// The learning path steps are placed on specific board cells
+// We'll use the main outer path cells as step positions
+function getLudoStepCells(steps) {
+  // 24 outer path cells available, pick evenly
+  const outer = [
+    [6,0],[6,1],[6,2],[6,3],[6,4],[6,5],// red zone top row
+    [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],// going up col6
+    [0,7],[0,8],// top
+    [1,8],[2,8],[3,8],[4,8],[5,8],// blue side
+    [6,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],// right across
+    [7,14],[8,14],
+    [8,13],[8,12],[8,11],[8,10],[8,9],[8,8],
+    [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
+    [14,7],[14,6],
+    [13,6],[12,6],[11,6],[10,6],[9,6],
+    [8,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
+    [7,0],
+  ];
+  // Take evenly spaced cells for each step
+  const total = outer.length;
+  const cells = [];
+  for(let i=0;i<steps;i++) {
+    const idx = Math.round((i/(steps-1||1))*(total-1));
+    cells.push(outer[Math.min(idx,total-1)]);
+  }
+  // Always start at outer[0], end at outer[total-1]
+  if(steps>=1) cells[0] = outer[0];
+  if(steps>=2) cells[cells.length-1] = outer[total-1];
+  return cells;
+}
+
+function renderLudoBoard(boardEl, cellClass, steps, currentStep, isQuiz=false) {
+  const grid = buildLudoGrid();
+  const stepCells = getLudoStepCells(steps);
+  boardEl.innerHTML = '';
+
+  // Create cell id lookup for step positions
+  const stepMap = {};
+  stepCells.forEach((pos,i)=>{ stepMap[`${pos[0]}-${pos[1]}`]=i; });
+
+  for(let r=0;r<15;r++) {
+    for(let c=0;c<15;c++) {
+      const div = document.createElement('div');
+      const zone = grid[r][c];
+      div.className = cellClass + ' z-' + zone;
+      div.id = `${isQuiz?'ql':'lb'}-${r}-${c}`;
+      const key = `${r}-${c}`;
+
+      if(zone==='center'){
+        if(r===7&&c===7){ div.innerHTML='⭐'; div.style.fontSize=isQuiz?'12px':'18px'; }
+      }
+
+      if(stepMap[key] !== undefined) {
+        const si = stepMap[key];
+        const prog = S.mods[si];
+        if(si < currentStep) {
+          div.classList.add(isQuiz?'qstep-done':'step-done');
+          div.innerHTML = `<span style="font-size:${isQuiz?'6px':'9px'};font-weight:800;color:#1a6a1a">${si+1}</span>`;
+        } else if(si === currentStep) {
+          div.classList.add(isQuiz?'qstep-cur':'step-active');
+          // Place token
+          const tok = document.createElement('div');
+          tok.className = isQuiz ? 'qtoken' : 'ltoken lt-y';
+          tok.textContent = isQuiz ? '🎲' : '👑';
+          tok.style.position = 'absolute';
+          div.appendChild(tok);
+        } else {
+          div.classList.add(isQuiz?'qstep-locked':'step-locked');
+          div.innerHTML = `<span style="font-size:${isQuiz?'5px':'8px'};font-weight:800;opacity:.6">${si+1}</span>`;
+        }
+      }
+
+      boardEl.appendChild(div);
+    }
+  }
+}
+
+/* ===== QUIZ STATE ===== */
+let qQs=[], qCur=0, qScore=0, qAns=false, qLudoPos=0, qSel=-1;
+
+/* ===== SCREENS ===== */
+function goScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const m={login:'s-login',courses:'s-courses',learn:'s-learn',quiz:'s-quiz',dash:'s-dash'};
+  const el = document.getElementById(m[name]||'s-'+name);
+  if(el){ el.classList.add('active'); window.scrollTo(0,0); }
+  if(name==='dash') initDash();
+  if(name==='learn') initLearn();
+  if(name==='courses') renderCourses();
+}
+
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  const icons={ok:'✅',err:'❌',info:'💡'};
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${icons[type]||'💡'}</span><span>${msg}</span>`;
+  document.body.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(-10px)';el.style.transition='.3s';setTimeout(()=>el.remove(),300);},2800);
+}
+
+function confetti(){
+  const cols=['#f7c948','#4ecdc4','#a78bfa','#ff6b6b','#34d399'];
+  for(let i=0;i<55;i++){
+    const p=document.createElement('div');
+    p.className='cp';
+    p.style.cssText=`left:${Math.random()*100}vw;top:-20px;background:${cols[~~(Math.random()*cols.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-delay:${Math.random()*2}s;animation-duration:${2+Math.random()*2}s`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),5000);
+  }
+}
+
+/* ===== LOGIN ===== */
+function swTab(t){
+  document.querySelectorAll('.ltab').forEach((el,i)=>el.classList.toggle('active',(t==='login'&&i===0)||(t==='signup'&&i===1)));
+  document.getElementById('tp-login').classList.toggle('active',t==='login');
+  document.getElementById('tp-signup').classList.toggle('active',t==='signup');
+}
+function tChip(el){el.classList.toggle('sel');}
+function selSkill(el){document.querySelectorAll('.skcard').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+
+function doLogin(){
+  const email=document.getElementById('l-email').value;
+  if(!email){toast('Enter email','err');return;}
+  S.user.name=email.split('@')[0].replace(/[^a-zA-Z\s]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).trim()||'Learner';
+  S.user.email=email; S.user.xp=0;
+  updUserUI(); goScreen('courses'); toast('Welcome back! 🎉','ok');
+}
+function doReg(){
+  const n=document.getElementById('r-name').value;
+  const e=document.getElementById('r-email').value;
+  const edu=document.getElementById('r-edu').value;
+  if(!n||!e||!edu){toast('Fill all fields','err');return;}
+  S.user={name:n,email:e,edu,interests:[...document.querySelectorAll('.chip.sel')].map(c=>c.textContent.trim()),skill:document.querySelector('.skcard.sel')?.querySelector('.skn')?.textContent||'Beginner',xp:0};
+  updUserUI(); goScreen('courses'); confetti(); toast(`Welcome, ${n}! 🚀`,'ok');
+}
+function updUserUI(){
+  const ini=S.user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  ['nav-av','d-av'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=ini;});
+  const nn=document.getElementById('nav-nm');if(nn)nn.textContent=S.user.name.split(' ')[0];
+  const dn=document.getElementById('d-name');if(dn)dn.textContent=S.user.name;
+  updXP();
+}
+function updXP(){
+  ['nav-xp','xp-top','rp-xp','d-xp','d-sxp'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=S.user.xp.toLocaleString();});
+}
+
+/* ===== COURSES ===== */
+function renderCourses(f='all'){
+  const list=f==='all'?COURSES:COURSES.filter(c=>c.diff===f);
+  document.getElementById('cgrid').innerHTML=list.map((c,i)=>`
+    <div class="ccard" style="animation-delay:${i*.07}s" onclick="enroll(${c.id})">
+      <div class="cimg" style="background:linear-gradient(135deg,${c.col}22,${c.col}55)">${c.e}</div>
+      <div class="cbod">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+          <span class="bdg bdg-${c.diff[0]==='e'?'e':c.diff[0]==='m'?'m':'h'}">${c.diff==='easy'?'🌱 Beginner':c.diff==='medium'?'🔥 Intermediate':'⚡ Advanced'}</span>
+          <span style="font-size:13px;color:var(--accent)">★ ${c.r}</span>
+        </div>
+        <div class="ctitle">${c.t}</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">${c.d}</p>
+        <div class="cmeta"><span class="mi">⏱ ${c.dur}</span><span class="mi">📚 ${c.steps} steps</span><span class="mi">👥 ${c.s}</span></div>
+        <div class="cpbar"><div class="cpfill" style="width:0%"></div></div>
+        <div class="cfooter"><span style="font-size:12px;color:var(--muted);font-weight:700">0% complete</span>
+          <button class="btn btn-y btn-sm" onclick="event.stopPropagation();enroll(${c.id})">⚡ Enroll</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function filt(btn,f){
+  document.querySelectorAll('#s-courses .btn-sm').forEach(b=>{b.style.borderColor='';b.style.color='';});
+  btn.style.borderColor='var(--accent)'; btn.style.color='var(--accent)';
+  renderCourses(f);
+}
+function enroll(id){
+  S.course=COURSES.find(c=>c.id===id);
+  S.mod=0;
+  const steps=Math.min(S.course.steps,MODS.length);
+  S.mods=Array.from({length:steps},()=>({done:false,quizScore:0,quizDone:false,videoDone:false,studyDone:false}));
+  S.videoPlaying=false; S.timerSecs=0;
+  if(S.timerInt) clearInterval(S.timerInt);
+  goScreen('learn');
+  toast(`Enrolled in ${S.course.t}! 🎉`,'ok');
+}
+
+/* ===== LEARNING SCREEN ===== */
+function initLearn(){
+  if(!S.course) return;
+  document.getElementById('ls-title').textContent=S.course.t;
+  renderSideSteps();
+  loadMod(S.mod);
+  renderStreak();
+  startTimer();
+}
+
+function renderSideSteps(){
+  const steps=S.mods.length;
+  document.getElementById('ls-steps').innerHTML=Array.from({length:steps},(_,i)=>{
+    const m=MODS[i]; const p=S.mods[i];
+    const isActive=i===S.mod;
+    const isLocked=i>0&&!S.mods[i-1]?.quizDone;
+    let cls='ls-step';
+    if(isActive) cls+=' active';
+    else if(p?.quizDone) cls+=' done';
+    else if(isLocked) cls+=' locked';
+    const nc=p?.quizDone?'done':isActive?'active':'';
+    return `<div class="${cls}" onclick="tryMod(${i})">
+      <div class="snum ${nc}">${p?.quizDone?'✓':i+1}</div>
+      <div class="sinfo"><div class="sname">${m.i} ${m.n}</div><div class="ssub">${m.s}</div></div>
+      ${p?.quizDone?'<span style="font-size:14px">✅</span>':isActive?'<span style="font-size:14px">▶</span>':isLocked?'<span style="font-size:14px">🔒</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function tryMod(i){
+  if(i>0&&!S.mods[i-1]?.quizDone){toast('Complete previous step first! 🔒','err');return;}
+  S.mod=i; S.videoPlaying=false;
+  renderSideSteps(); loadMod(i);
+}
+
+function loadMod(i){
+  const m=MODS[i]||MODS[0];
+  const p=S.mods[i];
+  document.getElementById('ltitle2').textContent=`Step ${i+1}: ${m.n}`;
+  document.getElementById('ludo-pos-label').textContent=`Step ${i+1} of ${S.mods.length}`;
+
+  // Render Ludo Board
+  const board=document.getElementById('ludo-board');
+  renderLudoBoard(board,'lc',S.mods.length,i,false);
+
+  // Content panel
+  const panel=document.getElementById('content-panel');
+  const videoDone=p?.videoDone;
+  const studyDone=p?.studyDone;
+  const allDone=videoDone&&studyDone;
+
+  panel.innerHTML=`
+    <!-- VIDEO CARD -->
+    <div class="video-card">
+      <div class="video-inner" id="vid-inner" onclick="toggleVid()">
+        <div class="vid-overlay" id="vid-overlay">
+          <div style="font-size:13px;font-weight:800;color:rgba(255,255,255,.7);text-align:center;padding:0 16px">${m.i} Step ${i+1}: ${m.n}</div>
+          <button class="play-circle" id="play-btn">${videoDone?'↺':'▶'}</button>
+          <div style="font-size:12px;color:rgba(255,255,255,.5)">${videoDone?'Completed — Watch again':'Click to start video lesson'}</div>
+        </div>
+        <div class="vid-progress"><div class="vid-fill" id="vid-fill" style="width:${videoDone?'100%':'0%'}"></div></div>
+      </div>
+      <div class="video-meta">
+        <h4>${m.i} ${m.n}</h4>
+        <span class="vid-status ${videoDone?'done':'notstarted'}">${videoDone?'✅ Watched':'⏸ Not started'}</span>
+      </div>
+    </div>
+
+    <!-- STUDY MATERIALS -->
+    ${MATS.map((mat,mi)=>`
+      <div class="mat-card" style="animation:fadeIn .4s ease ${mi*.1}s both">
+        <h4>${mat.title}</h4>
+        <p>${mat.body}</p>
+        <ul class="kpoints">
+          ${mat.pts.map(pt=>`<li><span>⚡</span>${pt}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('')}
+
+    <!-- COMPLETE BUTTON / START QUIZ -->
+    ${!allDone?`
+      <div class="step-cta">
+        <div style="font-size:40px;margin-bottom:10px">📋</div>
+        <h4>Mark this step complete</h4>
+        <p>Watch the video and read the materials, then start your quiz to move forward!</p>
+        <button class="btn btn-g" onclick="completeStep()">✅ Complete & Start Quiz</button>
+      </div>
+    `:`
+      <div class="step-cta" style="background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(247,201,72,.1));">
+        <div style="font-size:40px;margin-bottom:10px">🎯</div>
+        <h4>Ready for your quiz!</h4>
+        <p>You've completed this step. Take the quiz to earn XP and unlock the next step.</p>
+        <button class="btn btn-y btn-lg" onclick="startQuiz()">🎲 Start Quiz</button>
+      </div>
+    `}
+  `;
+
+  updRightPanel();
+  updSidebarProgress();
+}
+
+let vidInterval=null;
+function toggleVid(){
+  S.videoPlaying=!S.videoPlaying;
+  const btn=document.getElementById('play-btn');
+  if(btn) btn.textContent=S.videoPlaying?'⏸':'▶';
+  const fill=document.getElementById('vid-fill');
+  if(vidInterval) clearInterval(vidInterval);
+  if(S.videoPlaying&&fill){
+    let w=parseFloat(fill.style.width)||0;
+    vidInterval=setInterval(()=>{
+      w+=1;
+      fill.style.width=Math.min(100,w)+'%';
+      if(w>=100){
+        clearInterval(vidInterval);
+        S.mods[S.mod].videoDone=true;
+        S.videoPlaying=false;
+        toast('Video complete! ✅','ok');
+        loadMod(S.mod);
+      }
+    },120);
+  }
+}
+
+function completeStep(){
+  S.mods[S.mod].videoDone=true;
+  S.mods[S.mod].studyDone=true;
+  toast('Step materials done! Start quiz 🎯','ok');
+  loadMod(S.mod);
+}
+
+function startQuiz(){
+  qQs=getQs(S.mod);
+  qCur=0;qScore=0;qAns=false;qLudoPos=0;qSel=-1;
+  document.getElementById('q-title').textContent=`Quiz: ${MODS[S.mod]?.n||'Module '+(S.mod+1)}`;
+  buildQuizLudo();
+  renderQ();
+  document.getElementById('qcomplete').classList.remove('show');
+  document.getElementById('q-area').style.display='block';
+  document.getElementById('qfb').classList.remove('show');
+  goScreen('quiz');
+}
+
+function getQs(mi){
+  const bank=QB[mi]||QB[0];
+  return [...bank].sort(()=>Math.random()-.5);
+}
+
+/* ===== QUIZ ===== */
+function buildQuizLudo(){
+  const board=document.getElementById('quiz-ludo-board');
+  // Show question progress: qLudoPos out of qQs.length
+  // Map question progress to board steps
+  renderLudoBoard(board,'qlc',15,qLudoPos,true);
+}
+
+function updQuizLudo(forward){
+  if(forward) qLudoPos=Math.min(14,qLudoPos+1);
+  else qLudoPos=Math.max(0,qLudoPos-1);
+  document.getElementById('ql-pos').textContent=`Position: ${qLudoPos+1}`;
+  buildQuizLudo();
+}
+
+function renderQ(){
+  if(qCur>=qQs.length){showQComplete();return;}
+  const q=qQs[qCur]; qAns=false; qSel=-1;
+  document.getElementById('qfb').classList.remove('show','ok','bad');
+  document.getElementById('q-score').textContent=qScore;
+  const L=['A','B','C','D'];
+  document.getElementById('q-area').innerHTML=`
+    <div class="qcard">
+      <div class="qnum">Question ${qCur+1} of ${qQs.length}</div>
+      <div class="qtxt">${q.q}</div>
+      <div class="opts">
+        ${q.o.map((o,i)=>`<div class="opt" onclick="selOpt(this,${i})"><div class="ol">${L[i]}</div>${o}</div>`).join('')}
+      </div>
+    </div>
+    <div class="qacts"><button class="btn btn-y" id="conf-btn" style="display:none" onclick="confOpt()">Confirm →</button></div>
+  `;
+}
+
+function selOpt(el,i){
+  if(qAns)return;
+  qSel=i;
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('conf-btn').style.display='inline-flex';
+}
+
+function confOpt(){
+  if(qAns||qSel<0)return;
+  qAns=true;
+  const q=qQs[qCur];
+  const opts=document.querySelectorAll('.opt');
+  const correct=qSel===q.a;
+  opts[q.a].classList.add('cor');
+  if(!correct) opts[qSel].classList.add('wrg');
+
+  const fb=document.getElementById('qfb');
+  fb.className=`fb show ${correct?'ok':'bad'}`;
+  document.getElementById('qfb-icon').textContent=correct?'✅':'❌';
+  document.getElementById('qfb-txt').textContent=correct?'Correct! Token moves forward! +1 point':'Wrong! Token moves back. Correct: '+q.o[q.a];
+
+  if(correct){qScore++;updQuizLudo(true);}
+  else{updQuizLudo(false);}
+
+  document.getElementById('conf-btn').style.display='none';
+  document.querySelector('.qacts').innerHTML+=`<button class="btn btn-y" onclick="nextQ()">${qCur<qQs.length-1?'Next →':'See Results 🏆'}</button>`;
+}
+
+function nextQ(){qCur++;renderQ();}
+
+function showQComplete(){
+  document.getElementById('q-area').style.display='none';
+  document.getElementById('qfb').classList.remove('show');
+  document.getElementById('qcomplete').classList.add('show');
+  document.getElementById('qfinal').textContent=qScore;
+  const pct=Math.round((qScore/15)*100);
+  const grade=pct>=90?'A+':pct>=80?'A':pct>=70?'B':pct>=60?'C':'D';
+  const xp=qScore*80;
+  S.mods[S.mod].quizScore=qScore;
+  S.mods[S.mod].quizDone=pct>=60;
+  if(pct>=60){S.user.xp+=xp;updXP();}
+  let msg='';
+  if(pct>=80){msg=`🌟 Excellent! Grade ${grade} — You earned ${xp} XP! Next step unlocked!`;confetti();}
+  else if(pct>=60){msg=`✅ Passed! Grade ${grade} — ${xp} XP earned. Keep going!`;}
+  else{msg=`⚠️ Score: ${pct}% — Need 60%+ to proceed. Retry to improve!`;}
+  document.getElementById('qmsg').textContent=msg;
+  const nb=document.getElementById('next-btn');
+  if(nb) nb.style.display=pct>=60?'inline-flex':'none';
+  if(pct>=60) toast(`+${xp} XP earned! 🎉`,'ok');
+  else toast('Score too low — retry! 💪','info');
+}
+
+function retryQ(){
+  qQs=getQs(S.mod);
+  qCur=0;qScore=0;qAns=false;qLudoPos=0;qSel=-1;
+  buildQuizLudo();renderQ();
+  document.getElementById('qcomplete').classList.remove('show');
+  document.getElementById('q-area').style.display='block';
+  document.getElementById('qfb').classList.remove('show','ok','bad');
+}
+
+function exitQuiz(){
+  goScreen('learn');
+  initLearn();
+}
+
+function proceedNext(){
+  if(S.mod<S.mods.length-1){
+    S.mod++;
+    S.mods[S.mod].videoDone=false;
+    S.mods[S.mod].studyDone=false;
+    goScreen('learn');
+    initLearn();
+    toast(`Step ${S.mod+1} unlocked! 🔓`,'ok');
+  } else {
+    goScreen('dash');
+    confetti();
+    toast('Course Complete! 🏆 Amazing!','ok');
+  }
+}
+
+function updRightPanel(){
+  const steps=S.mods.length;
+  const done=S.mods.filter(m=>m?.quizDone).length;
+  const pct=steps>0?Math.round((done/steps)*100):0;
+  const ring=document.getElementById('ring-fill');
+  if(ring) ring.style.strokeDashoffset=239-(239*(pct/100));
+  const rp=document.getElementById('ring-pct');if(rp) rp.textContent=pct+'%';
+  const rs=document.getElementById('rp-step');if(rs) rs.textContent=`${S.mod+1}/${steps}`;
+  const rq=document.getElementById('rp-quiz');
+  const p=S.mods[S.mod];
+  if(rq) rq.textContent=p?.quizDone?`${p.quizScore}/15`:'-';
+}
+
+function updSidebarProgress(){
+  const steps=S.mods.length;
+  const done=S.mods.filter(m=>m?.quizDone).length;
+  const pct=steps>0?Math.round((done/steps)*100):0;
+  const bar=document.getElementById('ls-bar');if(bar) bar.style.width=pct+'%';
+  const pctEl=document.getElementById('ls-pct');if(pctEl) pctEl.textContent=pct+'%';
+}
+
+function renderStreak(){
+  const row=document.getElementById('streak-row');
+  if(!row)return;
+  const days=['M','T','W','T','F','S','S'];
+  const on=[true,true,true,true,true,false,false];
+  row.innerHTML=days.map((d,i)=>`<div class="sd ${i===4?'now':on[i]?'on':''}">${d}</div>`).join('');
+}
+
+function startTimer(){
+  if(S.timerInt) clearInterval(S.timerInt);
+  S.timerInt=setInterval(()=>{
+    S.timerSecs++;
+    const m=Math.floor(S.timerSecs/60);
+    const el=document.getElementById('rp-time');
+    if(el) el.textContent=m>0?`${m}m`:`${S.timerSecs}s`;
+  },1000);
+}
+
+/* ===== DASHBOARD ===== */
+let dCharts=[];
+function initDash(){
+  const c=S.course;
+  if(!c) return;
+  document.getElementById('d-course').textContent=`Enrolled: ${c.t}`;
+  const done=S.mods.filter(m=>m?.quizDone).length;
+  const steps=S.mods.length;
+  const totalScore=S.mods.reduce((s,m)=>s+(m?.quizScore||0),0);
+  const avg=done>0?Math.round((totalScore/done/15)*100):0;
+  const grade=avg>=90?'A+':avg>=80?'A':avg>=70?'B':avg>=60?'C':'D';
+  const rank=Math.max(1,Math.floor(Math.random()*10)+1);
+  document.getElementById('d-grade').textContent=grade||'—';
+  document.getElementById('d-savg').textContent=avg+'%';
+  document.getElementById('d-sdone').textContent=`${done}/${steps}`;
+  document.getElementById('d-srank').textContent='#'+rank;
+  updXP();
+
+  dCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
+  dCharts=[];
+
+  setTimeout(()=>{
+    const bCtx=document.getElementById('barChart')?.getContext('2d');
+    if(bCtx){
+      dCharts.push(new Chart(bCtx,{
+        type:'bar',
+        data:{
+          labels:S.mods.map((_,i)=>`Step ${i+1}`),
+          datasets:[{
+            label:'Score',
+            data:S.mods.map(m=>m?.quizScore||0),
+            backgroundColor:S.mods.map(m=>m?.quizDone?'rgba(78,205,196,.7)':'rgba(78,205,196,.2)'),
+            borderColor:'rgba(78,205,196,1)',borderWidth:2,borderRadius:7,
+          }]
+        },
+        options:{responsive:true,plugins:{legend:{display:false}},
+          scales:{y:{min:0,max:15,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8890b8'}},
+                  x:{grid:{display:false},ticks:{color:'#8890b8'}}}}
+      }));
+    }
+    const lCtx=document.getElementById('lineChart')?.getContext('2d');
+    if(lCtx){
+      dCharts.push(new Chart(lCtx,{
+        type:'line',
+        data:{
+          labels:['Wk 1','Wk 2','Wk 3','Wk 4','Wk 5','Wk 6'],
+          datasets:[
+            {label:'XP',data:[100,250,400,600,900,S.user.xp||900],borderColor:'rgba(247,201,72,1)',backgroundColor:'rgba(247,201,72,.1)',borderWidth:2,fill:true,tension:.4,pointBackgroundColor:'rgba(247,201,72,1)'},
+            {label:'Quiz Avg',data:[4,7,9,8,11,Math.min(15,Math.round(totalScore/Math.max(1,done))||10)],borderColor:'rgba(167,139,250,1)',backgroundColor:'rgba(167,139,250,.1)',borderWidth:2,fill:true,tension:.4,pointBackgroundColor:'rgba(167,139,250,1)'},
+          ]
+        },
+        options:{responsive:true,plugins:{legend:{labels:{color:'#8890b8'}}},
+          scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8890b8'}},x:{grid:{display:false},ticks:{color:'#8890b8'}}}}
+      }));
+    }
+
+    // Leaderboard
+    const lb=[
+      {n:'Priya S.',sc:4200,you:false},{n:'Marcus T.',sc:3850,you:false},{n:'Aisha K.',sc:3600,you:false},
+      {n:S.user.name,sc:S.user.xp,you:true},{n:'Chen W.',sc:1100,you:false},
+    ].sort((a,b)=>b.sc-a.sc).map((l,i)=>({...l,rank:i+1}));
+    document.getElementById('lb-list').innerHTML=lb.map(l=>`
+      <div class="lb-item ${l.you?'me':''}">
+        <div class="lbr ${l.rank===1?'g':l.rank===2?'s':l.rank===3?'b':''}">#${l.rank}</div>
+        <div class="lbav">${l.you?'😊':'👤'}</div>
+        <div class="lbn">${l.n}${l.you?' (You)':''}</div>
+        <div class="lbs">${l.sc.toLocaleString()} XP</div>
+      </div>
+    `).join('');
+  },80);
+}
+
+/* ===== CHATBOT ===== */
+const ARIA={
+  'study tip':["📚 Try 25-min Pomodoro blocks with 5-min breaks!","✏️ Active recall beats re-reading — quiz yourself after each section.","💡 Teach the concept aloud — if you can explain it, you know it!"],
+  'motivat':["🔥 You're making incredible progress! Every expert started as a beginner.","⚡ Consistency beats perfection. Small daily steps = massive results!","🏆 You started — that's already more than most people ever do!"],
+  'quiz':["🎯 Read carefully, eliminate wrong answers first.","💡 Stuck? Think back to the study materials — the answer is there!","🎲 Wrong answers move your Ludo token back — that's the game! Keep playing!"],
+  'navigat':["🗺️ Left sidebar = all your steps. Complete each quiz to unlock the next!","👆 Right panel shows your progress ring and XP at all times.","📊 Dashboard shows full analytics — click Dashboard in the topbar!"],
+};
+const DFLT=["Great question! Focus on core concepts before advanced topics.","Keep that curiosity alive — it's what separates great learners! 🌟","Every mistake on the quiz is just feedback. Use it to grow! 💪","You're on the right track! Keep going! 🚀"];
+
+let chatOpen=false;
+function tChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('cbpanel').classList.toggle('open',chatOpen);
+  document.getElementById('cbbtn').textContent=chatOpen?'✕':'🤖';
+}
+function qMsg(el){const t=el.textContent.replace(/[💡🏆❓🗺️]/g,'').trim();addU(t);ariaResp(t.toLowerCase());}
+function sChat(){const i=document.getElementById('cb-in');const v=i.value.trim();if(!v)return;addU(v);i.value='';ariaResp(v.toLowerCase());}
+function addU(t){const m=document.getElementById('cb-msgs');m.innerHTML+=`<div class="cmsg usr">${t}</div>`;m.scrollTop=m.scrollHeight;}
+function ariaResp(t){
+  const m=document.getElementById('cb-msgs');
+  const tid='t'+Date.now();
+  m.innerHTML+=`<div class="cmsg bot" id="${tid}"><div class="tdots"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>`;
+  m.scrollTop=m.scrollHeight;
+  setTimeout(()=>{
+    const tp=document.getElementById(tid);if(tp)tp.remove();
+    let r='';
+    for(const [k,rs] of Object.entries(ARIA)){if(t.includes(k)){r=rs[~~(Math.random()*rs.length)];break;}}
+    if(!r) r=DFLT[~~(Math.random()*DFLT.length)];
+    m.innerHTML+=`<div class="cmsg bot">${r}</div>`;m.scrollTop=m.scrollHeight;
+  },1100+Math.random()*500);
+}
+
+/* ===== INIT ===== */
+window.onload=()=>{renderCourses();updUserUI();};
+</script>
+</body>
+</html>
